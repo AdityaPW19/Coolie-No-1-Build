@@ -214,6 +214,53 @@
             to { transform: rotate(360deg); }
         }
         
+        /* Landscape prompt for mobile */
+        .rotate-prompt {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 1000;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .rotate-icon {
+            font-size: 48px;
+            animation: rotate 2s infinite ease-in-out;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes rotate {
+            0%, 100% { transform: rotate(-90deg); }
+            50% { transform: rotate(0deg); }
+        }
+        
+        .rotate-text {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .rotate-subtext {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        /* Show rotation prompt only on mobile portrait */
+        @media (max-width: 768px) and (orientation: portrait) {
+            .rotate-prompt {
+                display: flex;
+            }
+        }
+        
         /* Mobile responsive - improved */
         @media (max-width: 768px) {
             #controls {
@@ -345,19 +392,56 @@
             <div class="loader"></div>
         </div>
     </div>
+    
+    <!-- Rotation prompt for mobile users -->
+    <div class="rotate-prompt">
+        <div class="rotate-icon">📱</div>
+        <div class="rotate-text">Please Rotate Your Device</div>
+        <div class="rotate-subtext">This game is best played in landscape mode</div>
+    </div>
 
     <script>
-        // Fullscreen toggle
-        function toggleFullscreen() {
+        // Check if device is mobile
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+        
+        // Fullscreen toggle with orientation lock
+        async function toggleFullscreen() {
             const container = document.getElementById('game-container');
             const btn = document.querySelector('button');
             
             if (!document.fullscreenElement) {
-                container.requestFullscreen().catch(err => {
+                try {
+                    // Request fullscreen
+                    await container.requestFullscreen();
+                    
+                    // Try to lock orientation to landscape on mobile
+                    if (isMobileDevice() && screen.orientation && screen.orientation.lock) {
+                        try {
+                            await screen.orientation.lock('landscape');
+                            console.log('Orientation locked to landscape');
+                        } catch (err) {
+                            console.log('Orientation lock not supported:', err);
+                            // Some browsers don't support orientation lock, that's okay
+                        }
+                    }
+                } catch (err) {
                     alert(`Error attempting to enable fullscreen: ${err.message}`);
-                });
+                }
             } else {
+                // Exit fullscreen
                 document.exitFullscreen();
+                
+                // Unlock orientation when exiting fullscreen
+                if (screen.orientation && screen.orientation.unlock) {
+                    try {
+                        screen.orientation.unlock();
+                        console.log('Orientation unlocked');
+                    } catch (err) {
+                        console.log('Could not unlock orientation:', err);
+                    }
+                }
             }
         }
         
@@ -394,6 +478,18 @@
                 e.preventDefault();
                 restartGame();
             }
+        });
+        
+        // Handle orientation changes
+        if (screen.orientation) {
+            screen.orientation.addEventListener('change', () => {
+                console.log('Orientation changed to:', screen.orientation.type);
+            });
+        }
+        
+        // Alternative: Use window.orientation for older browsers
+        window.addEventListener('orientationchange', () => {
+            console.log('Orientation changed to:', window.orientation);
         });
     </script>
 </body>
